@@ -69,20 +69,21 @@ class Preprocess:
                     # print(xs)
                     # print(ys)
                     prev_frame = frame
-                if counter % update_game:
-                    print("update!")
-                    grid = self.game.reset(init = [xs, ys])
-                else:
-                    grid = self.game.play()
-                print(grid, "---<<>>----")
+                    if counter % update_game == 0:
+                        print("update!")
+                        grid = self.game.reset(init = [xs, ys])
+                    else:
+                        grid = self.game.play()
+                    print(grid, "---<<>>----")
+                    self.display(grid)
                 counter += 1
                 prev_frame = frame
-                self.display(grid)
+
 
     @staticmethod
     def display(frame):
         plt.imshow(frame)
-        plt.pause(0.000001)
+        plt.pause(0.0001)
 
     @staticmethod
     def to_gray(frame):
