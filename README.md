@@ -4,6 +4,10 @@ Uses the movement detected in a video by considering the difference between subs
 
 Uses blockwise_view as implemented in [https://github.com/ilastik/lazyflow/](https://github.com/ilastik/lazyflow/blob/master/lazyflow/utility/blockwise_view.py)
 
+###### Remark:
+The current GameOfLife class has a series of additional methods wrt to the original implementation, but no substantial changes
+
+
 ### Install
 
 - clone this repository
