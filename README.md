@@ -1,6 +1,9 @@
 # Game of Movement
 
-Uses the movement detected in a video by considering the difference between subsequent frames to trigger n evolution cycles of game of life as implemented in [https://github.com/ctjacobs/game-of-life](https://github.com/ctjacobs/game-of-life)
+Uses the movement detected in a video by considering the difference between subsequent frames to trigger n evolution cycles of game of life as implemented in [https://github.com/ctjacobs/game-of-life](https://github.com/ctjacobs/game-of-life).
+
+#### Remark:
+The current GameOfLife class has a series of additional methods wrt to the original implementation, but no substantial changes
 
 ### Install
 
