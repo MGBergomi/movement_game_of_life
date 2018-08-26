@@ -53,6 +53,10 @@ class GameOfLife:
       self.old_grid[init[1], init[0]] = 1
       return self.old_grid
 
+   def update(self, init):
+      self.old_grid[init[1], init[0]] = 1
+      return self.old_grid
+
    def live_neighbours(self, i, j):
       """ Count the number of live neighbours around point (i, j). """
       s = 0 # The total number of live neighbours.

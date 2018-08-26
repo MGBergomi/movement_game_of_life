@@ -9,8 +9,12 @@ import numpy as np
 import cv2 as cv
 from game_of_life import GameOfLife
 import seaborn as sns
+from scipy.ndimage.filters import gaussian_filter
+from scipy.misc import imresize
 sns.set()
 sns.set_style("whitegrid", {'axes.grid' : False})
+
+cmap = sns.light_palette("Navy", as_cmap=True)
 
 class Preprocess:
     def __init__(self, path = None, cols = 10, rows = 10, display = "plt"):
@@ -47,15 +51,17 @@ class Preprocess:
         if not self.cap.isOpened():
             raise ValueError("Something seems to be wrong with the video you" +
                              "selected")
+
     def process_frame(self, frame):
         frame = self.to_gray(frame)
         frame = cv.resize(frame, (self.crop_w, self.crop_h),
                           interpolation = cv.INTER_CUBIC)
         return self.discretize_frame(frame, self.height, self.width)
 
-    def process_video(self, update_game = 20):
+    def process_video(self, update_game = 2):
         prev_frame = None
         counter = 0
+        # tf, ta = plt.subplots(1,2)
 
         while self.cap.isOpened():
             ret, frame = self.cap.read()
@@ -65,16 +71,13 @@ class Preprocess:
                     prev_frame = frame
                 else:
                     diff = self.l2_diff(frame, prev_frame, self.rows , self.cols)
+                    # ta[0].imshow(diff)
                     xs, ys = self.clip_movement(diff)
-                    # print(xs)
-                    # print(ys)
                     prev_frame = frame
                     if counter % update_game == 0:
-                        print("update!")
-                        grid = self.game.reset(init = [xs, ys])
+                        grid = self.game.update(init = [xs, ys])
                     else:
                         grid = self.game.play()
-                    print(grid, "---<<>>----")
                     self.display(grid)
                 counter += 1
                 prev_frame = frame
@@ -82,8 +85,10 @@ class Preprocess:
 
     @staticmethod
     def display(frame):
-        plt.imshow(frame)
-        plt.pause(0.0001)
+        frame = imresize(frame, (600,800))
+        frame = gaussian_filter(frame, sigma=5)
+        plt.imshow(frame, cmap=cmap)
+        plt.pause(0.000000001)
 
     @staticmethod
     def to_gray(frame):
@@ -118,5 +123,5 @@ class Preprocess:
         return xs, ys
 
 if __name__ == "__main__":
-    p = Preprocess(path = None, cols = 20, rows = 10)
+    p = Preprocess(path = None, cols = 10, rows = 10)
     p.process_video()
