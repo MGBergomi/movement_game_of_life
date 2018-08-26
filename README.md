@@ -28,4 +28,4 @@ p.process_video()
 
 ##### Visualisation
 
-Visualisation is done with matplotlib and beautified with seaborn.
+Visualisation is done with opencv
