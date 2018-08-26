@@ -58,37 +58,38 @@ class Preprocess:
                           interpolation = cv.INTER_CUBIC)
         return self.discretize_frame(frame, self.height, self.width)
 
-    def process_video(self, update_game = 2):
+    def process_video(self, update_game = 1):
         prev_frame = None
         counter = 0
         # tf, ta = plt.subplots(1,2)
 
         while self.cap.isOpened():
-            ret, frame = self.cap.read()
+            ret, orig_frame = self.cap.read()
             if ret:
-                frame = self.process_frame(frame)
-                if prev_frame is None:
-                    prev_frame = frame
-                else:
+                frame = self.process_frame(orig_frame)
+                if prev_frame is not None:
                     diff = self.l2_diff(frame, prev_frame, self.rows , self.cols)
-                    # ta[0].imshow(diff)
                     xs, ys = self.clip_movement(diff)
-                    prev_frame = frame
                     if counter % update_game == 0:
+
                         grid = self.game.update(init = [xs, ys])
-                    else:
-                        grid = self.game.play()
-                    self.display(grid)
+                    grid = self.game.play()
+                    self.display(grid, orig_frame = orig_frame)
                 counter += 1
                 prev_frame = frame
 
 
     @staticmethod
-    def display(frame):
-        frame = imresize(frame, (600,800))
+    def display(frame, orig_frame = None):
+        target_size = (600,800)
+        frame = imresize(frame, target_size)
         frame = gaussian_filter(frame, sigma=5)
-        plt.imshow(frame, cmap=cmap)
-        plt.pause(0.000000001)
+        if orig_frame is not None:
+            orig_frame = cv.cvtColor(orig_frame, cv.COLOR_BGR2GRAY)
+            orig_frame = imresize(orig_frame, target_size)
+            frame = cv.addWeighted(frame, 1, orig_frame, 1, 0)
+        cv.imshow('test',frame)
+        cv.waitKey(1) & 0xFF == ord('q')
 
     @staticmethod
     def to_gray(frame):
@@ -112,8 +113,9 @@ class Preprocess:
                       axis = (1,2)).reshape([rows, cols])
 
     @staticmethod
-    def clip_movement(diff, threshold = 250000, n = 20):
+    def clip_movement(diff, threshold = 270000, n = 7):
         res = np.where(diff > threshold)
+        print(len(res[0]))
         p = np.random.permutation(len(res[0]))
         ys = res[0][p]
         xs = res[1][p]
@@ -123,5 +125,7 @@ class Preprocess:
         return xs, ys
 
 if __name__ == "__main__":
-    p = Preprocess(path = None, cols = 10, rows = 10)
+    path = './test.avi'
+    path = None
+    p = Preprocess(path = path, cols = 30, rows = 10)
     p.process_video()

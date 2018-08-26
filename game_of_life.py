@@ -40,13 +40,11 @@ class GameOfLife:
       self.W = W
       if init is None:
          self.old_grid = np.random.rand(H,W)
-         self.old_grid[self.old_grid > .85] = 1
-         self.old_grid[self.old_grid <= .85] = 0
+         self.old_grid[self.old_grid >= 1] = 1
+         self.old_grid[self.old_grid < 1] = 0
       else:
          self.reset(init)
       self.new_grid = np.zeros((H,W), dtype='i')
-      plt.imshow(self.old_grid)
-      plt.show()
 
    def reset(self, init):
       self.old_grid = np.zeros((self.H,self.W), dtype='i')
