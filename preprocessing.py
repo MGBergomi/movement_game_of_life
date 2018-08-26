@@ -11,6 +11,7 @@ from game_of_life import GameOfLife
 import seaborn as sns
 from scipy.ndimage.filters import gaussian_filter
 from scipy.misc import imresize
+from utils import blockwise_view
 sns.set()
 sns.set_style("whitegrid", {'axes.grid' : False})
 
@@ -56,7 +57,7 @@ class Preprocess:
         frame = self.to_gray(frame)
         frame = cv.resize(frame, (self.crop_w, self.crop_h),
                           interpolation = cv.INTER_CUBIC)
-        return self.discretize_frame(frame, self.height, self.width)
+        return frame, self.discretize_frame(frame, self.height, self.width)
 
     def process_video(self, update_game = 1, max_evolution_cycles = 5):
         prev_frame = None
@@ -67,10 +68,11 @@ class Preprocess:
         while self.cap.isOpened():
             ret, orig_frame = self.cap.read()
             if ret:
-                frame = self.process_frame(orig_frame)
+                orig_frame, frame = self.process_frame(orig_frame)
+
                 if prev_frame is not None:
                     diff = self.l2_diff(frame, prev_frame, self.rows , self.cols)
-                    threshold = 70000
+                    threshold = 80000#100000
                     xs, ys = self.clip_movement(diff, threshold = threshold)
                     if counter % update_game == 0:
                         grid = self.game.update(init = [xs, ys])
@@ -93,8 +95,9 @@ class Preprocess:
         frame = imresize(frame, target_size)
         frame = gaussian_filter(frame, sigma=5)
         if orig_frame is not None:
-            orig_frame = cv.cvtColor(orig_frame, cv.COLOR_BGR2GRAY)
+            # print(frame.shape)
             orig_frame = imresize(orig_frame, target_size)
+            # print(orig_frame.shape)
             frame = cv.addWeighted(frame, 1, orig_frame, 1, 0)
         cv.imshow('test',frame)
         cv.waitKey(1) & 0xFF == ord('q')
@@ -105,8 +108,8 @@ class Preprocess:
 
     @staticmethod
     def discretize_frame(frame, height, width):
-        frame = np.squeeze(frame)
-        return np.reshape(frame, [-1, height, width])
+        # frame = np.squeeze(frame)
+        return blockwise_view(frame, (height, width))
 
     @staticmethod
     def l2_diff(discretized_frame, discretized_prev_frame, rows, cols):
@@ -118,23 +121,26 @@ class Preprocess:
             [num_clipped_rectangles, heigth_rec, width_rec]
         """
         return np.sum(np.square(discretized_frame - discretized_prev_frame),
-                      axis = (1,2)).reshape([rows, cols])
+                      axis = (2,3)).reshape([rows, cols])
+
 
     @staticmethod
-    def clip_movement(diff, threshold = 100, n = 20):
+    def clip_movement(diff, threshold = 100, n = 50):
         # print(diff.max())
+        # print(diff)
         res = np.where(diff > threshold)
         # print(len(res[0]))
         p = np.random.permutation(len(res[0]))
         ys = res[0][p]
         xs = res[1][p]
-        if len(xs) > n:
-            xs = xs[:n]
-            ys = ys[:n]
+        # if len(xs) > n:
+        #     xs = xs[:n]
+        #     ys = ys[:n]
         return xs, ys
+
 
 if __name__ == "__main__":
     path = './test.avi'
-    # path = None
+    path = None
     p = Preprocess(path = path, cols = 60, rows = 20)
-    p.process_video()
+    f = p.process_video()
