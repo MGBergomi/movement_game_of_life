@@ -39,9 +39,10 @@ class GameOfLife:
       self.H = H
       self.W = W
       if init is None:
-         self.old_grid = np.random.rand(H,W)
-         self.old_grid[self.old_grid >= 1] = 1
-         self.old_grid[self.old_grid < 1] = 0
+         # self.old_grid = np.random.rand(H,W)
+         # self.old_grid[self.old_grid >= 1] = 1
+         # self.old_grid[self.old_grid < 1] = 0
+         self.old_grid = np.zeros((H,W), dtype='i')
       else:
          self.reset(init)
       self.new_grid = np.zeros((H,W), dtype='i')
@@ -49,13 +50,14 @@ class GameOfLife:
    def reset(self, init):
       self.old_grid = np.zeros((self.H,self.W), dtype='i')
       self.old_grid[init[1], init[0]] = 1
+      self.new_grid = np.zeros((self.H,self.W), dtype='i')
       return self.old_grid
 
    def update(self, init):
       self.old_grid[init[1], init[0]] = 1
       return self.old_grid
 
-   def live_neighbours(self, i, j):
+   def live_neighbours(self, i, j, torus = False):
       """ Count the number of live neighbours around point (i, j). """
       s = 0 # The total number of live neighbours.
       # Loop over all the neighbours.
@@ -67,12 +69,13 @@ class GameOfLife:
                s += self.old_grid[x][y]
             # The remaining branches handle the case where the neighbour is off the end of the grid.
             # In this case, we loop back round such that the grid becomes a "toroidal array".
-            elif(x == self.H and y != self.W):
-               s += self.old_grid[0][y]
-            elif(x != self.H and y == self.W):
-               s += self.old_grid[x][0]
-            else:
-               s += self.old_grid[0][0]
+            if torus:
+               if(x == self.H and y != self.W):
+                  s += self.old_grid[0][y]
+               elif(x != self.H and y == self.W):
+                  s += self.old_grid[x][0]
+               else:
+                  s += self.old_grid[0][0]
       return s
 
    def play(self):

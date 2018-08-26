@@ -58,9 +58,10 @@ class Preprocess:
                           interpolation = cv.INTER_CUBIC)
         return self.discretize_frame(frame, self.height, self.width)
 
-    def process_video(self, update_game = 1):
+    def process_video(self, update_game = 1, max_evolution_cycles = 5):
         prev_frame = None
         counter = 0
+        evolutions_counter = 0
         # tf, ta = plt.subplots(1,2)
 
         while self.cap.isOpened():
@@ -69,13 +70,20 @@ class Preprocess:
                 frame = self.process_frame(orig_frame)
                 if prev_frame is not None:
                     diff = self.l2_diff(frame, prev_frame, self.rows , self.cols)
-                    xs, ys = self.clip_movement(diff)
+                    threshold = 70000
+                    xs, ys = self.clip_movement(diff, threshold = threshold)
                     if counter % update_game == 0:
-
                         grid = self.game.update(init = [xs, ys])
+                    if evolutions_counter >= max_evolution_cycles:
+                        evolutions_counter = 0
+                        if diff.max() < threshold/10:
+                            grid = self.game.reset(init = [[],[]])
+
                     grid = self.game.play()
+                    evolutions_counter += 1
                     self.display(grid, orig_frame = orig_frame)
                 counter += 1
+
                 prev_frame = frame
 
 
@@ -113,9 +121,10 @@ class Preprocess:
                       axis = (1,2)).reshape([rows, cols])
 
     @staticmethod
-    def clip_movement(diff, threshold = 270000, n = 7):
+    def clip_movement(diff, threshold = 100, n = 20):
+        # print(diff.max())
         res = np.where(diff > threshold)
-        print(len(res[0]))
+        # print(len(res[0]))
         p = np.random.permutation(len(res[0]))
         ys = res[0][p]
         xs = res[1][p]
@@ -126,6 +135,6 @@ class Preprocess:
 
 if __name__ == "__main__":
     path = './test.avi'
-    path = None
-    p = Preprocess(path = path, cols = 30, rows = 10)
+    # path = None
+    p = Preprocess(path = path, cols = 60, rows = 20)
     p.process_video()
