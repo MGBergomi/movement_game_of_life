@@ -12,15 +12,17 @@ import seaborn as sns
 from scipy.ndimage.filters import gaussian_filter
 from scipy.misc import imresize
 from utils import blockwise_view
+import imageio
 sns.set()
 sns.set_style("whitegrid", {'axes.grid' : False})
 
 cmap = sns.light_palette("Navy", as_cmap=True)
 
 class Preprocess:
-    def __init__(self, path = None, cols = 10, rows = 10, display = "plt"):
-        if display == "plt":
-            plt.ion()
+    def __init__(self, path = None, cols = 10, rows = 10, writer = False):
+        # fourcc = cv.VideoWriter_fourcc(*'XVID')
+        self.writer =  writer
+
         self.path = path
         self.cols = cols
         self.rows = rows
@@ -59,20 +61,23 @@ class Preprocess:
                           interpolation = cv.INTER_CUBIC)
         return frame, self.discretize_frame(frame, self.height, self.width)
 
-    def process_video(self, update_game = 1, max_evolution_cycles = 5):
+    def process_video(self, update_game = 1, max_evolution_cycles = 5,
+                      threshold_scale = 20, min_th = 10000):
         prev_frame = None
         counter = 0
         evolutions_counter = 0
+        diffs = np.ones(10) * 1e10
         # tf, ta = plt.subplots(1,2)
 
-        while self.cap.isOpened():
+        while self.cap.isOpened() and counter < 3000:
             ret, orig_frame = self.cap.read()
             if ret:
                 orig_frame, frame = self.process_frame(orig_frame)
 
                 if prev_frame is not None:
                     diff = self.l2_diff(frame, prev_frame, self.rows , self.cols)
-                    threshold = 80000#100000
+                    diffs[counter%10] = np.median(diff)
+                    threshold = np.max([threshold_scale * np.max(diffs), min_th])
                     xs, ys = self.clip_movement(diff, threshold = threshold)
                     if counter % update_game == 0:
                         grid = self.game.update(init = [xs, ys])
@@ -80,18 +85,18 @@ class Preprocess:
                         evolutions_counter = 0
                         if diff.max() < threshold/10:
                             grid = self.game.reset(init = [[],[]])
-
                     grid = self.game.play()
                     evolutions_counter += 1
-                    self.display(grid, orig_frame = orig_frame)
+                    self.display(grid, orig_frame = orig_frame, save = self.writer)
                 counter += 1
-
+                print(counter)
                 prev_frame = frame
 
+        self.writer.close()
 
     @staticmethod
-    def display(frame, orig_frame = None):
-        target_size = (600,800)
+    def display(frame, orig_frame = None, save = None):
+        target_size = (576,1024)
         frame = imresize(frame, target_size)
         frame = gaussian_filter(frame, sigma=5)
         if orig_frame is not None:
@@ -99,8 +104,13 @@ class Preprocess:
             orig_frame = imresize(orig_frame, target_size)
             # print(orig_frame.shape)
             frame = cv.addWeighted(frame, 1, orig_frame, 1, 0)
-        cv.imshow('test',frame)
-        cv.waitKey(1) & 0xFF == ord('q')
+
+        if save is None:
+            cv.imshow('test',frame)
+            cv.waitKey(10) & 0xFF == ord('q')
+        else:
+            save.append_data(frame)
+
 
     @staticmethod
     def to_gray(frame):
@@ -129,18 +139,18 @@ class Preprocess:
         # print(diff.max())
         # print(diff)
         res = np.where(diff > threshold)
-        # print(len(res[0]))
         p = np.random.permutation(len(res[0]))
         ys = res[0][p]
         xs = res[1][p]
-        # if len(xs) > n:
-        #     xs = xs[:n]
-        #     ys = ys[:n]
+        if len(xs) > n:
+            xs = xs[:n]
+            ys = ys[:n]
         return xs, ys
 
 
 if __name__ == "__main__":
-    path = './test.avi'
-    path = None
-    p = Preprocess(path = path, cols = 60, rows = 20)
-    f = p.process_video()
+    path = './test_2.mp4'
+    writer =imageio.get_writer('test__.mp4', fps=25)
+    #path = None
+    p = Preprocess(path = path, cols = 90, rows = 40, writer = writer)
+    f = p.process_video(threshold_scale = 17.5, min_th = 20000)
